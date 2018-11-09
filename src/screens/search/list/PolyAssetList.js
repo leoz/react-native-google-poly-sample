@@ -16,10 +16,6 @@ import PolyAsset from "./PolyAsset";
 @inject("googlePolyAPI")
 @observer
 export default class PolyAssetList extends React.Component {
-  static defaultProps = {
-    onAssetPress: function(asset) {}
-  };
-
   constructor(props) {
     super(props);
     this.state = {
@@ -29,6 +25,11 @@ export default class PolyAssetList extends React.Component {
         : []
     };
   }
+
+  onAssetPress = asset => {
+    this.props.googlePolyAPI.setCurrentAsset(asset);
+    this.props.navigation.goBack(null);
+  };
 
   onSearchPress = () => {
     var keywords = this.state.searchQuery;
@@ -97,7 +98,7 @@ export default class PolyAssetList extends React.Component {
       if (i == this.state.currentResults.length - 1) {
         results.push(
           <PolyAsset
-            onPress={this.props.onAssetPress}
+            onPress={this.onAssetPress}
             asset={this.state.currentResults[i]}
             key={i}
           />
@@ -108,12 +109,12 @@ export default class PolyAssetList extends React.Component {
       results.push(
         <View style={{ flexDirection: "row" }} key={"row" + i}>
           <PolyAsset
-            onPress={this.props.onAssetPress}
+            onPress={this.onAssetPress}
             asset={this.state.currentResults[i]}
             key={i}
           />
           <PolyAsset
-            onPress={this.props.onAssetPress}
+            onPress={this.onAssetPress}
             asset={this.state.currentResults[i + 1]}
             key={i + 1}
           />

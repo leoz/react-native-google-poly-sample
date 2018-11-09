@@ -8,6 +8,7 @@ require("./util/MTLLoader");
 
 export default class GooglePolyAPI {
   @observable results = [];
+  @observable current = {};
   @observable pageToken = "";
   @observable keywords = "";
 
@@ -40,6 +41,11 @@ export default class GooglePolyAPI {
     this.keywords = keywords;
   };
 
+  @action
+  setCurrentAsset = asset => {
+    this.current = asset;
+  };
+
   // Returns the results of the current query...
   @action
   getSearchResults() {
@@ -66,7 +72,8 @@ export default class GooglePolyAPI {
       );
   }
 
-  @computed get canLoadMore() {
+  @computed
+  get canLoadMore() {
     return this.pageToken && this.pageToken != "";
   }
 
