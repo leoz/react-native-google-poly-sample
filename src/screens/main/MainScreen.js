@@ -1,7 +1,7 @@
 //
 import React from 'react';
 import { Button } from 'react-native';
-import MainView from './MainView';
+import MainView from './ARView';
 
 export default class MainScreen extends React.Component {
     static navigationOptions = ({ navigation }) => {

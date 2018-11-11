@@ -6,6 +6,13 @@ import * as THREE from "three";
 require("./util/OBJLoader");
 require("./util/MTLLoader");
 
+function isEmpty(obj) {
+  for (var key in obj) {
+    if (obj.hasOwnProperty(key)) return false;
+  }
+  return true;
+}
+
 export default class GooglePolyAPI {
   @observable results = [];
   @observable current = {};
@@ -64,7 +71,7 @@ export default class GooglePolyAPI {
           if (data && !data.error) {
             this.results = this.results.concat(data.assets);
             this.pageToken = data.nextPageToken;
-            console.log(data);
+            //console.log(data);
             return Promise.resolve(data.assets);
           }
           return Promise.resolve(null);
@@ -78,20 +85,20 @@ export default class GooglePolyAPI {
   }
 
   // Returns a Three.js object
-  static getThreeModel(objectData, success, failure) {
+  getThreeModel(success, failure) {
     if (!success) {
       success = function() {};
     }
     if (!failure) {
       failure = function() {};
     }
-    if (!objectData) {
-      failure("objectData is null");
+    if (!this.current || isEmpty(this.current)) {
+      failure("current is null");
       return;
     }
 
     // Search for a format...
-    var format = objectData.formats.find(format => {
+    var format = this.current.formats.find(format => {
       return format.formatType == "OBJ";
     });
     if (format === undefined) {

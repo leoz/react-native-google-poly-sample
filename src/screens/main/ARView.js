@@ -1,13 +1,18 @@
-import React from 'react';
-import { AR, Asset, Permissions } from 'expo';
+import React from "react";
+import { AR, Asset, Permissions } from "expo";
 // Let's alias ExpoTHREE.AR as ThreeAR so it doesn't collide with Expo.AR.
-import ExpoTHREE, { AR as ThreeAR, THREE } from 'expo-three';
+import ExpoTHREE, { AR as ThreeAR, THREE } from "expo-three";
 // Let's also import `expo-graphics`
 // expo-graphics manages the setup/teardown of the gl context/ar session, creates a frame-loop, and observes size/orientation changes.
 // it also provides debug information with `isArCameraStateEnabled`
-import { View as GraphicsView } from 'expo-graphics';
-import AssetUtils from 'expo-asset-utils';
+import { View as GraphicsView } from "expo-graphics";
+import AssetUtils from "expo-asset-utils";
+import { observer, inject } from "mobx-react";
 
+import TurkeyObject from "../../api/objects/TurkeyObject.json";
+
+@inject("googlePolyAPI")
+@observer
 export default class ARView extends React.Component {
   state = { permission: false };
 
@@ -15,18 +20,26 @@ export default class ARView extends React.Component {
     THREE.suppressExpoWarnings();
     ThreeAR.suppressWarnings();
 
+    this.props.googlePolyAPI.setCurrentAsset(TurkeyObject);
+
     this.getPermission();
   }
 
   getPermission = async () => {
     const { status } = await Permissions.askAsync(Permissions.CAMERA);
-    this.setState({ permission: status === 'granted' });
+    this.setState({ permission: status === "granted" });
   };
 
   render() {
     if (!this.state.permission) {
       return null;
     }
+    //
+
+    if (this.props.googlePolyAPI.current && this.threeModel) {
+      this.updateModel();
+    }
+
     // You need to add the `isArEnabled` & `arTrackingConfiguration` props.
     // `isArRunningStateEnabled` Will show us the play/pause button in the corner.
     // `isArCameraStateEnabled` Will render the camera tracking information on the screen.
@@ -37,7 +50,6 @@ export default class ARView extends React.Component {
         style={{ flex: 1 }}
         onContextCreate={this.onContextCreate}
         onRender={this.onRender}
-        onResize={this.onResize}
         isArEnabled
         isShadowsEnabled
         isArRunningStateEnabled
@@ -57,7 +69,7 @@ export default class ARView extends React.Component {
       gl,
       pixelRatio,
       width,
-      height,
+      height
     });
     this.renderer.gammaInput = true;
     this.renderer.gammaOutput = true;
@@ -82,65 +94,27 @@ export default class ARView extends React.Component {
     this.scene.add(this.shadowLight.target);
     this.scene.add(new THREE.AmbientLight(0x404040));
 
-    // Make a cube - notice that each unit is 1 meter in real life, we will make our box 0.1 meters
-    const geometry = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    this.updateModel();
+  };
 
-    const diffuseAsset = await AssetUtils.resolveAsync(
-      'https://github.com/mrdoob/three.js/blob/master/examples/textures/brick_diffuse.jpg?raw=true'
+  updateModel = () => {
+    // Remove the current object...
+    if (this.threeModel) {
+      this.scene.remove(this.threeModel);
+    }
+
+    // Add the current object...
+    this.props.googlePolyAPI.getThreeModel(
+      function(object) {
+        this.threeModel = object;
+        ExpoTHREE.utils.scaleLongestSideToSize(object, 0.75);
+        object.position.z = -3;
+        this.scene.add(object);
+      }.bind(this),
+      function(error) {
+        console.log(error);
+      }
     );
-    const diffuse = await ExpoTHREE.loadAsync(diffuseAsset);
-    diffuse.wrapS = THREE.RepeatWrapping;
-    diffuse.wrapT = THREE.RepeatWrapping;
-    diffuse.anisotropy = 4;
-    diffuse.repeat.set(1, 1);
-
-    const bumpAsset = await AssetUtils.resolveAsync(
-      'https://github.com/mrdoob/three.js/blob/master/examples/textures/brick_bump.jpg?raw=true'
-    );
-    const bumpMap = await ExpoTHREE.loadAsync(bumpAsset);
-    bumpMap.wrapS = THREE.RepeatWrapping;
-    bumpMap.wrapT = THREE.RepeatWrapping;
-    bumpMap.anisotropy = 4;
-    bumpMap.repeat.set(1, 1);
-
-    const roughnessAsset = await AssetUtils.resolveAsync(
-      'https://github.com/mrdoob/three.js/blob/master/examples/textures/brick_roughness.jpg?raw=true'
-    );
-    const roughnessMap = await ExpoTHREE.loadAsync(roughnessAsset);
-    roughnessMap.wrapS = THREE.RepeatWrapping;
-    roughnessMap.wrapT = THREE.RepeatWrapping;
-    roughnessMap.anisotropy = 4;
-    roughnessMap.repeat.set(9, 0.5);
-
-    const cubeMat = new THREE.MeshStandardMaterial({
-      roughness: 0.7,
-      color: 0xffffff,
-      bumpScale: 0.002,
-      metalness: 0.2,
-      map: diffuse,
-      bumpMap,
-      roughnessMap,
-    });
-
-    // Combine our geometry and material
-    this.cube = new THREE.Mesh(geometry, cubeMat);
-    this.cube.castShadow = true;
-    this.cube.position.y = 0.05;
-
-    this.shadowFloor = new ThreeAR.ShadowFloor({
-      width: 1,
-      height: 1,
-      opacity: 0.6,
-    });
-
-    this.magneticObject = new ThreeAR.MagneticObject();
-    this.magneticObject.maintainScale = false;
-    this.magneticObject.maintainRotation = false;
-
-    this.magneticObject.add(this.cube);
-    this.magneticObject.add(this.shadowFloor);
-
-    this.scene.add(this.magneticObject);
   };
 
   getShadowLight = () => {
@@ -165,37 +139,14 @@ export default class ARView extends React.Component {
     return light;
   };
 
-  // The normalized point on the screen that we want our object to stick to.
-  screenCenter = new THREE.Vector2(0.5, 0.5);
-
-  // When the phone rotates, or the view changes size, this method will be called.
-  onResize = ({ x, y, scale, width, height }) => {
-    // Let's stop the function if we haven't setup our scene yet
-    if (!this.renderer) {
-      return;
+  onRender = delta => {
+    // Rotate the object...
+    if (this.threeModel) {
+      this.threeModel.rotation.x += 2 * delta;
+      this.threeModel.rotation.y += 1.5 * delta;
     }
-    this.camera.aspect = width / height;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setPixelRatio(scale);
-    this.renderer.setSize(width, height);
-  };
 
-  // Called every frame.
-  onRender = () => {
-    // This will make the points get more rawDataPoints from Expo.AR
-    this.magneticObject.update(this.camera, this.screenCenter);
-
-    this.arPointLight.update();
-
-    this.shadowFloor.opacity = this.arPointLight.intensity;
-
-    this.shadowLight.target.position.copy(this.magneticObject.position);
-    this.shadowLight.position.copy(this.shadowLight.target.position);
-    this.shadowLight.position.x += 0.1;
-    this.shadowLight.position.y += 1;
-    this.shadowLight.position.z += 0.1;
-
-    // Finally render the scene with the AR Camera
+    // Render...
     this.renderer.render(this.scene, this.camera);
   };
 }
