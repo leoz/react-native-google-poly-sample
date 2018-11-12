@@ -9,7 +9,7 @@
     "eject": "expo eject"
   },
   "dependencies": {
-    "expo": "^31.0.4",
+    "expo": "^31.0.5",
     "expo-graphics": "https://github.com/leoz/expo-graphics.git",
     "expo-three": "https://github.com/leoz/expo-three.git",
     "mobx": "^5.6.0",
