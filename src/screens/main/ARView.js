@@ -6,10 +6,9 @@ import ExpoTHREE, { AR as ThreeAR, THREE } from "expo-three";
 // expo-graphics manages the setup/teardown of the gl context/ar session, creates a frame-loop, and observes size/orientation changes.
 // it also provides debug information with `isArCameraStateEnabled`
 import { View as GraphicsView } from "expo-graphics";
-import AssetUtils from "expo-asset-utils";
 import { observer, inject } from "mobx-react";
 
-import TurkeyObject from "../../api/objects/TurkeyObject.json";
+import ThreeModelApi from "../../api/threemodel/ThreeModelApi";
 
 @inject("googlePolyAPI")
 @observer
@@ -18,9 +17,9 @@ export default class ARView extends React.Component {
 
   componentDidMount() {
     THREE.suppressExpoWarnings();
-    ThreeAR.suppressWarnings();
+    //ThreeAR.suppressWarnings();
 
-    this.props.googlePolyAPI.setCurrentAsset(TurkeyObject);
+    this.props.googlePolyAPI.setCurrentAsset(ThreeModelApi.getDefaultModel());
 
     this.getPermission();
   }
@@ -104,7 +103,8 @@ export default class ARView extends React.Component {
     }
 
     // Add the current object...
-    this.props.googlePolyAPI.getThreeModel(
+    ThreeModelApi.getModel(
+      this.props.googlePolyAPI.current,
       function(object) {
         this.threeModel = object;
         ExpoTHREE.utils.scaleLongestSideToSize(object, 0.75);
