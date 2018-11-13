@@ -1,7 +1,7 @@
 //
 import GooglePolyApiKey from "./googlepoly/GooglePolyApiKey";
-import GooglePolyApi from "./googlepoly/GooglePolyApi";
+import GooglePolyStore from "./googlepoly/GooglePolyStore";
 
 export default {
-  googlePolyAPI: new GooglePolyApi(GooglePolyApiKey.key)
+  polyStore: new GooglePolyStore(GooglePolyApiKey.key)
 };

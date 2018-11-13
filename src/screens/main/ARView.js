@@ -10,7 +10,7 @@ import { observer, inject } from "mobx-react";
 
 import ThreeModelApi from "../../api/threemodel/ThreeModelApi";
 
-@inject("googlePolyAPI")
+@inject("polyStore")
 @observer
 export default class ARView extends React.Component {
   state = { permission: false };
@@ -19,7 +19,7 @@ export default class ARView extends React.Component {
     THREE.suppressExpoWarnings();
     //ThreeAR.suppressWarnings();
 
-    this.props.googlePolyAPI.setCurrentAsset(ThreeModelApi.getDefaultModel());
+    this.props.polyStore.setCurrentAsset(ThreeModelApi.getDefaultModel());
 
     this.getPermission();
   }
@@ -35,7 +35,7 @@ export default class ARView extends React.Component {
     }
     //
 
-    if (this.props.googlePolyAPI.current && this.threeModel) {
+    if (this.props.polyStore.current && this.threeModel) {
       this.updateModel();
     }
 
@@ -104,7 +104,7 @@ export default class ARView extends React.Component {
 
     // Add the current object...
     ThreeModelApi.getModel(
-      this.props.googlePolyAPI.current,
+      this.props.polyStore.current,
       function(object) {
         this.threeModel = object;
         ExpoTHREE.utils.scaleLongestSideToSize(object, 0.75);

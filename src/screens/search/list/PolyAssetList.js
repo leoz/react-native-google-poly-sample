@@ -13,39 +13,39 @@ import { observer, inject } from "mobx-react";
 
 import PolyAsset from "./PolyAsset";
 
-@inject("googlePolyAPI")
+@inject("polyStore")
 @observer
 export default class PolyAssetList extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
       searchQuery: "",
-      currentResults: this.props.googlePolyAPI.results
-        ? this.props.googlePolyAPI.results
+      currentResults: this.props.polyStore.results
+        ? this.props.polyStore.results
         : []
     };
   }
 
   onAssetPress = asset => {
-    this.props.googlePolyAPI.setCurrentAsset(asset);
+    this.props.polyStore.setCurrentAsset(asset);
     this.props.navigation.goBack(null);
   };
 
   onSearchPress = () => {
     var keywords = this.state.searchQuery;
-    this.props.googlePolyAPI.setSearchParams(keywords);
+    this.props.polyStore.setSearchParams(keywords);
 
-    this.props.googlePolyAPI.getSearchResults().then(
+    this.props.polyStore.getSearchResults().then(
       function(assets) {
-        this.setState({ currentResults: this.props.googlePolyAPI.results });
+        this.setState({ currentResults: this.props.polyStore.results });
       }.bind(this)
     );
   };
 
   onLoadMorePress = () => {
-    this.props.googlePolyAPI.getSearchResults().then(
+    this.props.polyStore.getSearchResults().then(
       function(assets) {
-        this.setState({ currentResults: this.props.googlePolyAPI.results });
+        this.setState({ currentResults: this.props.polyStore.results });
       }.bind(this)
     );
   };
@@ -126,7 +126,7 @@ export default class PolyAssetList extends React.Component {
   }
 
   renderLoadMoreButton() {
-    return !this.props.googlePolyAPI.canLoadMore ? (
+    return !this.props.polyStore.canLoadMore ? (
       <View />
     ) : (
       <Button title="Load more..." onPress={this.onLoadMorePress} />

@@ -1,7 +1,7 @@
 //
 import { observable, computed, action } from "mobx";
 
-export default class GooglePolyAPI {
+export default class GooglePolyStore {
   @observable results = [];
   @observable current = {};
   @observable pageToken = "";
@@ -44,7 +44,7 @@ export default class GooglePolyAPI {
   // Returns the results of the current query...
   @action
   getSearchResults() {
-    var url = GooglePolyAPI.getQueryURL(
+    var url = GooglePolyStore.getQueryURL(
       this.key,
       this.keywords,
       this.pageToken
