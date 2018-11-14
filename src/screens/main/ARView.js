@@ -17,7 +17,7 @@ export default class ARView extends React.Component {
 
   componentDidMount() {
     THREE.suppressExpoWarnings();
-    //ThreeAR.suppressWarnings();
+    ThreeAR.suppressWarnings();
 
     this.props.polyStore.setCurrentAsset(ThreeModelApi.getDefaultModel());
 

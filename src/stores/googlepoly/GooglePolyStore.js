@@ -7,25 +7,9 @@ export default class GooglePolyStore {
   @observable pageToken = "";
   @observable keywords = "";
 
-  constructor(key) {
+  constructor(key, api) {
     this.key = key;
-  }
-
-  // Returns a query URL based on the given data...
-  static getQueryURL(key, keywords, pageToken) {
-    var baseURL = "https://poly.googleapis.com/v1/assets?";
-
-    var url = baseURL + "key=" + key;
-    url += "&pageSize=10";
-    url += "&maxComplexity=MEDIUM";
-    url += "&format=OBJ";
-    if (keywords) {
-      url += "&keywords=" + encodeURIComponent(keywords);
-    }
-    if (pageToken) {
-      url += "&pageToken=" + pageToken;
-    }
-    return url;
+    this.api = api;
   }
 
   // Sets current search parameters and resets member variables...
@@ -43,28 +27,17 @@ export default class GooglePolyStore {
 
   // Returns the results of the current query...
   @action
-  getSearchResults() {
-    var url = GooglePolyStore.getQueryURL(
+  async getSearchResults() {
+    let data = await this.api.fetchSearchResults(
       this.key,
       this.keywords,
       this.pageToken
     );
 
-    return fetch(url)
-      .then(function(response) {
-        return response.json();
-      })
-      .then(
-        function(data) {
-          if (data && !data.error) {
-            this.results = this.results.concat(data.assets);
-            this.pageToken = data.nextPageToken;
-            //console.log(data);
-            return Promise.resolve(data.assets);
-          }
-          return Promise.resolve(null);
-        }.bind(this)
-      );
+    if (data && !data.error) {
+      this.results = this.results.concat(data.assets);
+      this.pageToken = data.nextPageToken;
+    }
   }
 
   @computed

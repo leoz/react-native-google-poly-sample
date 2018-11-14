@@ -31,23 +31,16 @@ export default class PolyAssetList extends React.Component {
     this.props.navigation.goBack(null);
   };
 
-  onSearchPress = () => {
+  onSearchPress = async () => {
     var keywords = this.state.searchQuery;
     this.props.polyStore.setSearchParams(keywords);
 
-    this.props.polyStore.getSearchResults().then(
-      function(assets) {
-        this.setState({ currentResults: this.props.polyStore.results });
-      }.bind(this)
-    );
+    await this.onLoadMorePress();
   };
 
-  onLoadMorePress = () => {
-    this.props.polyStore.getSearchResults().then(
-      function(assets) {
-        this.setState({ currentResults: this.props.polyStore.results });
-      }.bind(this)
-    );
+  onLoadMorePress = async () => {
+    await this.props.polyStore.getSearchResults();
+    await this.setState({ currentResults: this.props.polyStore.results });
   };
 
   onSearchChangeText = text => {
