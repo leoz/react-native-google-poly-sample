@@ -16,21 +16,63 @@ export default class ThreeModelApi {
     return true;
   };
 
+  static promisifyLoader = (loader, onProgress) => {
+    function promiseLoader(url) {
+      return new Promise((resolve, reject) => {
+        loader.load(url, resolve, onProgress, reject);
+      });
+    }
+
+    return {
+      originalLoader: loader,
+      load: promiseLoader
+    };
+  };
+
   static getDefaultModel = () => {
     return TurkeyObject;
   };
 
+  static load_MTL = async (url, path) => {
+    var loader = new THREE.MTLLoader();
+    loader.setCrossOrigin(true);
+    loader.setTexturePath(path);
+
+    var mtl_loader = ThreeModelApi.promisifyLoader(loader);
+    let materials = await mtl_loader.load(url);
+
+    return materials;
+  };
+
+  static load_OBJ = async (url, materials) => {
+    var loader = new THREE.OBJLoader();
+    loader.setMaterials(materials);
+
+    const obj_loader = ThreeModelApi.promisifyLoader(loader);
+    let object = await obj_loader.load(url);
+
+    return object;
+  };
+
+  static load_Texture = async (url, object) => {
+    var texUri = await AssetUtils.uriAsync(url);
+    var texture = new THREE.MeshBasicMaterial({
+      map: await ExpoTHREE.loadAsync(texUri)
+    });
+    object.traverse(child => {
+      if (child instanceof THREE.Mesh) {
+        child.material = texture;
+      }
+    });
+
+    return object;
+  };
+
   // Returns a Three.js object
-  static getModel = (current, success, failure) => {
-    if (!success) {
-      success = function() {};
-    }
-    if (!failure) {
-      failure = function() {};
-    }
+  static getModel = async (current) => {
     if (!current || ThreeModelApi.isEmpty(current)) {
-      failure("current is null");
-      return;
+      console.log("current is null");
+      return null;
     }
 
     // Search for a format...
@@ -38,8 +80,8 @@ export default class ThreeModelApi {
       return format.formatType == "OBJ";
     });
     if (format === undefined) {
-      failure("No format found");
-      return;
+      console.log("No format found");
+      return null;
     }
 
     // Search for a resource...
@@ -53,30 +95,17 @@ export default class ThreeModelApi {
     var path = obj.url.slice(0, obj.url.indexOf(obj.relativePath));
 
     // Load the MTL...
-    var loader = new THREE.MTLLoader();
-    loader.setCrossOrigin(true);
-    loader.setTexturePath(path);
-    loader.load(mtl.url, function(materials) {
-      // Load the OBJ...
-      loader = new THREE.OBJLoader();
-      loader.setMaterials(materials);
-      loader.load(obj.url, async function(object) {
-        // If there is a texture, apply it...
-        if (tex !== undefined) {
-          var texUri = await AssetUtils.uriAsync(tex.url);
-          var texture = new THREE.MeshBasicMaterial({
-            map: await ExpoTHREE.loadAsync(texUri)
-          });
-          object.traverse(child => {
-            if (child instanceof THREE.Mesh) {
-              child.material = texture;
-            }
-          });
-        }
+    let materials = await ThreeModelApi.load_MTL(mtl.url, path);
 
-        // Return the object...
-        success(object);
-      });
-    });
+    // Load the OBJ...
+    let object = await ThreeModelApi.load_OBJ(obj.url, materials);
+
+    // If there is a texture, apply it...
+    if (tex !== undefined) {
+      object = await ThreeModelApi.load_Texture(tex.url, object);
+    }
+
+    // Return the object...
+    return object;
   };
 }

@@ -15,13 +15,15 @@ import ThreeModelApi from "../../api/threemodel/ThreeModelApi";
 export default class ARView extends React.Component {
   state = { permission: false };
 
-  componentDidMount() {
+  async componentDidMount() {
     THREE.suppressExpoWarnings();
     ThreeAR.suppressWarnings();
 
     this.props.polyStore.setCurrentAsset(ThreeModelApi.getDefaultModel());
 
     this.getPermission();
+
+    await this.updateModel();
   }
 
   getPermission = async () => {
@@ -92,29 +94,22 @@ export default class ARView extends React.Component {
     this.scene.add(this.shadowLight);
     this.scene.add(this.shadowLight.target);
     this.scene.add(new THREE.AmbientLight(0x404040));
-
-    this.updateModel();
   };
 
-  updateModel = () => {
+  updateModel = async () => {
     // Remove the current object...
     if (this.threeModel) {
       this.scene.remove(this.threeModel);
     }
 
     // Add the current object...
-    ThreeModelApi.getModel(
-      this.props.polyStore.current,
-      function(object) {
-        this.threeModel = object;
-        ExpoTHREE.utils.scaleLongestSideToSize(object, 0.75);
-        object.position.z = -3;
-        this.scene.add(object);
-      }.bind(this),
-      function(error) {
-        console.log(error);
-      }
-    );
+    let object = await ThreeModelApi.getModel(this.props.polyStore.current);
+    if (object) {
+      this.threeModel = object;
+      ExpoTHREE.utils.scaleLongestSideToSize(object, 0.75);
+      object.position.z = -3;
+      this.scene.add(object);
+    }
   };
 
   getShadowLight = () => {
